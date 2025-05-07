@@ -1,0 +1,38 @@
+name: Nightly Data Collection
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Run at midnight every day
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Run collector
+      env:
+        STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+      run: |
+        cd backend
+        python collector.py
+        
+    - name: Commit and push if changed
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add data/
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Update game data" && git push) 
